@@ -7,13 +7,16 @@ Created on Jan 27, 2020
 
 # Folder Locations
 
-FOLDER_SAVE_DIR                 = "C:\\Users\\davisr28\\Documents\\Python\\Metadata\\data\\indexed_folders.csv"
-METADATA_DATABASE_LOC           = "C:\\Users\\davisr28\\Documents\\Python\\Metadata\\data\\metadata_database.csv"
+FOLDER_SAVE_DIR                 = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\indexed_folders.csv"
+METADATA_DATABASE_LOC           = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\metadata_database.csv"
 INDEX_ROOT_DIR                  = "Z:\\data\\trials\\GO29436_IMpower150\\Images\\"
-ERROR_TRACKER_LOC               = "C:\\Users\\davisr28\\Documents\\Python\\Metadata\\data\\error_database.csv"
+ERROR_TRACKER_LOC               = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\error_database.csv"
+TEMP1_CSV                       = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\temp1_metadata.csv"
+CONV_KERNAL_LIST_LOC            = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\conv_kernel_list.csv"
 
 # Thresholds
 AXIAL_SCAN_THRESHOLD            = 0.95
+MM_RANGE                        = 0.05
 
 # strings
 EMPTY                           = "empty"

@@ -1,6 +1,8 @@
 '''
 Created on Jan 27, 2020
 
+Note to self: need to add slice spacing and body part examined tags
+
 @author: davisr28
 '''
 
@@ -65,13 +67,9 @@ def isContrastEnhanced(i0,series_dir):
 def isSeriesAxial(i0,folder_path):
 
     folder_name_non_axial=any([non_ax_str in folder_path for non_ax_str in ["Sagittal","Coronal","sagittal","coronal"]])
-    image_orientation_non_axial=((float(i0[0x0020,0x0037].value[0]) > constants.AXIAL_SCAN_THRESHOLD) and (float(i0[0x0020,0x0037].value[4]) > constants.AXIAL_SCAN_THRESHOLD)) if (0x0020,0x0037) in i0 else False
+    image_orientation_non_axial=((float(i0[0x0020,0x0037].value[0]) < constants.AXIAL_SCAN_THRESHOLD) or (float(i0[0x0020,0x0037].value[4]) < constants.AXIAL_SCAN_THRESHOLD)) if (0x0020,0x0037) in i0 else False
 
     return not (folder_name_non_axial or image_orientation_non_axial)
-#     if float(i0[0x0020,0x0037].value[0]) > constants.AXIAL_SCAN_THRESHOLD:
-#         return True
-#     else:
-#         return False
 
 def getSliceThickness(i0,i1,i2,i3):
     st_series=i0[0x0018,0x0050].value if (0x0018,0x0050) in i0 else constants.INT_ERROR 
@@ -79,8 +77,14 @@ def getSliceThickness(i0,i1,i2,i3):
     slice_pos_delta_last=(i2[0x0020,0x0032].value[2]-i3[0x0020,0x0032].value[2]) if ((0x0020,0x0032) in i2) and ((0x0020,0x0032) in i3) else constants.INT_ERROR
     
     # since images may not be sorted in the folder, need to make sure we're acconting for how many slices are in between the images
-    first_instance_num_delta=i1[0x0020,0x0013].value-i0[0x0020,0x0013].value
-    last_instance_num_delta=i3[0x0020,0x0013].value-i2[0x0020,0x0013].value
+    if len(str(i0[0x0020,0x0013].value))*len(str(i1[0x0020,0x0013].value))*len(str(i2[0x0020,0x0013].value))*len(str(i3[0x0020,0x0013].value)) != 0:
+        # if none of the strings are empty
+        first_instance_num_delta=i1[0x0020,0x0013].value-i0[0x0020,0x0013].value
+        last_instance_num_delta=i3[0x0020,0x0013].value-i2[0x0020,0x0013].value
+    else:
+        # if one of them is zero, write the instance num delta to 1,1
+        # right now, the user is not being notified when this statement occurs
+        first_instance_num_delta,last_instance_num_delta=(1,1)
     
     st_im_first=abs(slice_pos_delta_first/first_instance_num_delta) if first_instance_num_delta != 0 else constants.INT_ERROR
     st_im_last=abs(slice_pos_delta_last/last_instance_num_delta) if last_instance_num_delta != 0 else constants.INT_ERROR
@@ -145,6 +149,12 @@ def readMetadata(i0,i1,i2,i3,folder_path):
     return meta_sum
 
 def populateMetadataDatabase(root_dir):
+    
+    raise UserWarning("See comments below this line!")
+    # The following are interfering with reading the dataframe in pandas
+    # A few of the SliceThicknessSeries rows are empty, when they should be -999
+    
+    
     folder_df=pd.read_csv(constants.FOLDER_SAVE_DIR,index_col=0)
     
     # find the start index
@@ -204,10 +214,21 @@ def populateMetadataDatabase(root_dir):
                 with open(constants.ERROR_TRACKER_LOC,"a",newline="") as file:
                     writer = csv.writer(file)
                     writer.writerow(folder_path)
+                    
+def loadMetadata():
+    dtype={"ContrastBolusStartTime":str,"ConvKernel":str,"FolderIndex":int,"ImageZCoverage":float,"IsAxial":bool,"Manufacturer":str,"ManufacturerModelName":str,"PatientName":str,"SeriesName":str,"SeriesNameWithContrast":bool,"SeriesZCoverage":float,"SliceThicknessImageFirst":float,"SliceThicknessImageLast":float,"SliceThicknessSeries":float,"StudyDate":str}
+    md_df=pd.read_csv(constants.METADATA_DATABASE_LOC, encoding = "ISO-8859-1",dtype=dtype)
+    
+    dt_df=md_df.apply(lambda row:pd.to_datetime(row["StudyDate"],format='%Y%m%d',errors="coerce"),axis=1)
+    md_df=md_df.drop("StudyDate",axis=1)
+    md_df.insert(len(md_df.keys()),"StudyDate",dt_df)
+
+    return md_df
+
 if __name__ == "__main__":
     
 #     indexFolders(constants.INDEX_ROOT_DIR)
-#     populateMetadataDatabase(constants.INDEX_ROOT_DIR)
-    folder_path="Z:\\data\\trials\\GO29436_IMpower150\\Images\\280255-10262\\41993\\20150826_CT\\20150826_1736_602_Sagittal\\"
-    i0,i1,i2,i3,error=readDicoms(folder_path)
-    meta_sum=readMetadata(i0, i1, i2, i3, folder_path)
+    populateMetadataDatabase(constants.INDEX_ROOT_DIR)
+#     folder_path="Z:\\data\\trials\\GO29436_IMpower150\\Images\\280255-10262\\41993\\20150826_CT\\20150826_1736_602_Sagittal\\"
+#     i0,i1,i2,i3,error=readDicoms(folder_path)
+#     meta_sum=readMetadata(i0, i1, i2, i3, folder_path)
