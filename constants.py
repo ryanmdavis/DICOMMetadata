@@ -12,6 +12,7 @@ METADATA_DATABASE_LOC           = "C:\\Users\\davisr28\\Documents\\Python\\DICOM
 INDEX_ROOT_DIR                  = "Z:\\data\\trials\\GO29436_IMpower150\\Images\\"
 ERROR_TRACKER_LOC               = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\error_database.csv"
 TEMP1_CSV                       = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\temp1_metadata.csv"
+TEMP_CONTRAST_CSV               = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\temp_contrast_metadata.csv"
 CONV_KERNAL_LIST_LOC            = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\conv_kernel_list.csv"
 
 # Thresholds

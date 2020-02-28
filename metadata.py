@@ -19,6 +19,8 @@ import sys
 # recon kernal
 # slice thickness
 
+def restrictToRecistExams
+
 def indexFolders(d_start):
     folder_df=pd.DataFrame([])
     patient_num=0
@@ -121,6 +123,8 @@ def readMetadata(i0,i1,i2,i3,folder_path):
     series_z_coverage,image_z_coverage=seriesZCoverage(i0,i3)
     meta_sum["SeriesZCoverage"]=series_z_coverage
     meta_sum["ImageZCoverage"]=image_z_coverage
+    meta_sum["FirstSlice"]=i0[0x0020,0x0032].value[2] if (0x0020,0x0032) in i0 else constants.INT_ERROR
+    meta_sum["LastSlice"]=i3[0x0020,0x0032].value[2] if (0x0020,0x0032) in i3 else constants.INT_ERROR 
     
     # patient/date info
     meta_sum["PatientName"]=i0[0x0010,0x0010].value if (0x0010,0x0010) in i0 else constants.EMPTY 
@@ -150,7 +154,7 @@ def readMetadata(i0,i1,i2,i3,folder_path):
 
 def populateMetadataDatabase(root_dir):
     
-    raise UserWarning("See comments below this line!")
+#     raise UserWarning("See comments below this line!")
     # The following are interfering with reading the dataframe in pandas
     # A few of the SliceThicknessSeries rows are empty, when they should be -999
     
