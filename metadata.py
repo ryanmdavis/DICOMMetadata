@@ -19,8 +19,6 @@ import sys
 # recon kernal
 # slice thickness
 
-def restrictToRecistExams
-
 def indexFolders(d_start):
     folder_df=pd.DataFrame([])
     patient_num=0
@@ -127,8 +125,9 @@ def readMetadata(i0,i1,i2,i3,folder_path):
     meta_sum["LastSlice"]=i3[0x0020,0x0032].value[2] if (0x0020,0x0032) in i3 else constants.INT_ERROR 
     
     # patient/date info
-    meta_sum["PatientName"]=i0[0x0010,0x0010].value if (0x0010,0x0010) in i0 else constants.EMPTY 
+    meta_sum["PatientCode"]=i0[0x0010,0x0010].value if (0x0010,0x0010) in i0 else constants.EMPTY 
     meta_sum["StudyDate"]=i0[0x0008,0x0020].value if (0x0008,0x0020) in i0 else constants.EMPTY
+    meta_sum["SitePatient"]=folder_path.split("\\")[5]
     
     # software
     meta_sum["ConvKernel"]=i0[0x0018,0x1210].value if (0x0018,0x1210) in i0 else constants.EMPTY
@@ -219,9 +218,9 @@ def populateMetadataDatabase(root_dir):
                     writer = csv.writer(file)
                     writer.writerow(folder_path)
                     
-def loadMetadata():
-    dtype={"ContrastBolusStartTime":str,"ConvKernel":str,"FolderIndex":int,"ImageZCoverage":float,"IsAxial":bool,"Manufacturer":str,"ManufacturerModelName":str,"PatientName":str,"SeriesName":str,"SeriesNameWithContrast":bool,"SeriesZCoverage":float,"SliceThicknessImageFirst":float,"SliceThicknessImageLast":float,"SliceThicknessSeries":float,"StudyDate":str}
-    md_df=pd.read_csv(constants.METADATA_DATABASE_LOC, encoding = "ISO-8859-1",dtype=dtype)
+def loadMetadata(file_location=constants.METADATA_DATABASE_LOC):
+    dtype={"ContrastBolusStartTime":str,"ConvKernel":str,"FolderIndex":int,"ImageZCoverage":float,"IsAxial":bool,"Manufacturer":str,"ManufacturerModelName":str,"PatientName":str,"SeriesName":str,"SeriesNameWithContrast":bool,"SeriesZCoverage":float,"SliceThicknessImageFirst":float,"SliceThicknessImageLast":float,"SliceThicknessSeries":float,"StudyDate":str,"FirstSlice":float,"LastSlice":float}
+    md_df=pd.read_csv(file_location, encoding = "ISO-8859-1",dtype=dtype)
     
     dt_df=md_df.apply(lambda row:pd.to_datetime(row["StudyDate"],format='%Y%m%d',errors="coerce"),axis=1)
     md_df=md_df.drop("StudyDate",axis=1)

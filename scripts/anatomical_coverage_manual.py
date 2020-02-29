@@ -35,21 +35,25 @@ for (patient_name,study_date) in pt_df.itertuples(index=False):
     patient_num=patient_num+1
     print("%2.1f%% completed." % (100*patient_num/len(pt_df)))
     this_pat_df=anat_df[(anat_df["PatientName"]==patient_name) & (anat_df["StudyDate"]==study_date)]
-    this_pat_contains_chest=any(this_pat_df["Anatomy"].str.contains("Chest"))
-    this_pat_contains_abdomen=any(this_pat_df["Anatomy"].str.contains("Abdomen"))
-    this_pat_contains_pelvis=any(this_pat_df["Anatomy"].str.contains("Pelvis"))
+    this_pat_contains_chest=any(this_pat_df["Anatomy"].str.contains("Chest|thorax",flags=re.IGNORECASE,regex=True))
+    this_pat_contains_abdomen=any(this_pat_df["Anatomy"].str.contains("Abdomen",flags=re.IGNORECASE,regex=True))
+    this_pat_contains_pelvis=any(this_pat_df["Anatomy"].str.contains("Pelvis",flags=re.IGNORECASE,regex=True))
     
     row={"PatientName":patient_name,"StudyDate":study_date,"HasCAP":this_pat_contains_chest and this_pat_contains_abdomen and this_pat_contains_pelvis}
     coverage_df=coverage_df.append(pd.DataFrame(row,index=[len(coverage_df)]))
 
-coverage_df.to_csv(constants.TEMP1_CSV)
+# coverage_df.to_csv(constants.TEMP1_CSV)
 
 patient_all_pt_cov_df=pd.DataFrame([])
 for patient_name in list(pt_df["PatientName"].drop_duplicates()):
     all_timepoints_cap_bool=len(coverage_df[coverage_df["PatientName"]==patient_name]) == len(coverage_df[(coverage_df["PatientName"]==patient_name) & (coverage_df["HasCAP"]==True)])
     
-    row={"PatientName":patient_name,"AllTPHasCAP":all_timepoints_cap_bool}
+    fraction_has_cap=len(coverage_df[(coverage_df["PatientName"]==patient_name) & (coverage_df["HasCAP"]==True)])/len(coverage_df[coverage_df["PatientName"]==patient_name])
+    
+    row={"PatientName":patient_name,"AllTPHasCAP":all_timepoints_cap_bool,"FractionHasCAP":fraction_has_cap}
     patient_all_pt_cov_df=patient_all_pt_cov_df.append(pd.DataFrame(row,index=[len(patient_all_pt_cov_df)]))
 
+patient_all_pt_cov_df.to_csv(constants.TEMP1_CSV)
+print(constants.TEMP1_CSV)
 print("%2.1f%% of timepoints contain full CAP coverage." % (100*len(coverage_df[coverage_df["HasCAP"]==True])/len(coverage_df)))
 print("%2.1f%% of patients contain full CAP coverage for all of their exams." % (100*len(patient_all_pt_cov_df[patient_all_pt_cov_df["AllTPHasCAP"]==True])/len(patient_all_pt_cov_df)))
