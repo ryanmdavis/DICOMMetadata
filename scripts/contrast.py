@@ -23,7 +23,7 @@ matplotlib.rc('xtick', labelsize=20)
 matplotlib.rc('ytick', labelsize=20)
 matplotlib.rcParams.update({'font.size': 20}) 
 
-compute = False
+compute = True
 
 if compute:
     manual_df=pd.read_csv("C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\GO29436_TaskSeries_list_20190219.csv")
@@ -103,6 +103,9 @@ if compute:
                 # fraction with contrast or MR
                 visits_with_ct_contrast_or_mr=ct_with_contrast_visits.union(mr_visits)
                 fraction_with_ct_contrast_or_mr=len(visits_with_ct_contrast_or_mr)/total_visits
+                
+                # fraction with contrast
+#                 fraction_with_ct_contrast_or
     
         else:
             fraction_non_contrast_with_mr=1
@@ -123,7 +126,7 @@ ax1.hist(np.array(patient_contrast_df["NumVisitsWithNoContrastAndNoBodyMR"]),col
 ax1.set(xlabel="# Visits w/o Contrast CT or Body MR",ylabel="Number of Patients")
 ax1.set_xticks([0,3,6,9,12])
 ax2.hist(100*np.array(patient_contrast_df["FractionWithCTContrastOrMR"]),color="k",bins=[10*(-0.5 + ii) for ii in range(12)])
-ax2.set(xlabel="Percent visits w/ contrast-CT or body MR")
+ax2.set(xlabel="Percent visits w/ contrast-CT")
 # plt.xlabel("Percent of patients's visits with axial contrast-enhanced scan",size=16)
 # plt.ylabel("Number of Patients",size=16)
 # plt.xticks(size=16)

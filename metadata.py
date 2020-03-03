@@ -56,7 +56,7 @@ def readDicoms(folder):
     except:
         error=True
         (i0,i1,i2,i3) = (0,0,0,0)
-    return i0,i1,i2,i3,error
+    return i0,i1,i2,i3,error,len(dcm_files)
 
 def isContrastEnhanced(i0,series_dir):
     cbst = constants.EMPTY if (0x0018,0x1042) not in i0 else i0[0x0018,0x1042].value # contrast bolus start time
@@ -71,7 +71,7 @@ def isSeriesAxial(i0,folder_path):
 
     return not (folder_name_non_axial or image_orientation_non_axial)
 
-def getSliceThickness(i0,i1,i2,i3):
+def getSliceThickness(i0,i1,i2,i3,num_dcm_files):
     st_series=i0[0x0018,0x0050].value if (0x0018,0x0050) in i0 else constants.INT_ERROR 
     slice_pos_delta_first=(i0[0x0020,0x0032].value[2]-i1[0x0020,0x0032].value[2]) if ((0x0020,0x0032) in i0) and ((0x0020,0x0032) in i1) else constants.INT_ERROR
     slice_pos_delta_last=(i2[0x0020,0x0032].value[2]-i3[0x0020,0x0032].value[2]) if ((0x0020,0x0032) in i2) and ((0x0020,0x0032) in i3) else constants.INT_ERROR
@@ -94,7 +94,22 @@ def getSliceThickness(i0,i1,i2,i3):
     else:
         non_sorted_slice_warning=str(False)
     
-    return st_series,st_im_first,st_im_last,non_sorted_slice_warning
+    
+    # infer the position of the first and last slice
+    try:
+        mm_per_instance=slice_pos_delta_first/first_instance_num_delta if first_instance_num_delta != 0 else constants.INT_ERROR
+        i0_instance=float(i0[0x0020,0x0013].value) if (0x0020,0x0013) in i0  else constants.INT_ERROR
+        i0_pos=float(i0[0x0020,0x0032].value[2]) if (0x0020,0x0032) in i0  else float(constants.INT_ERROR)
+        
+        first_inst_num=1
+        last_inst_num=num_dcm_files
+        
+        last_slice_pos=(i0_instance-last_inst_num)*mm_per_instance+i0_pos
+        first_slice_pos=(i0_instance-first_inst_num)*mm_per_instance+i0_pos
+    except:
+        last_slice_pos=float(constants.INT_ERROR)
+        first_slice_pos=float(constants.INT_ERROR)
+    return st_series,st_im_first,st_im_last,non_sorted_slice_warning,last_slice_pos,first_slice_pos
 
 def seriesZCoverage(i0,i3):
     if ((0x0020,0x1041) in i0) and (((0x0020,0x1041) in i3) and (len(str(i0[0x0020,0x1041].value))>0) and (len(str(i3[0x0020,0x1041].value)))>0):
@@ -108,22 +123,40 @@ def seriesZCoverage(i0,i3):
         image_z_coverage = constants.INT_ERROR
     return series_z_coverage,image_z_coverage
 
+def seriesZCoverage2(st_im_last,num_dcm_files):
+    return st_im_last*num_dcm_files
+
+
 def isModalityCT(i0):
     return True if (((0x0008,0x0060) in i0) and (i0[0x0008,0x0060].value == "CT")) else False
 
-def readMetadata(i0,i1,i2,i3,folder_path):
+def readMetadata(i0,i1,i2,i3,folder_path,num_dcm_files):
     meta_sum={}
     
     # folder path
     meta_sum["SeriesName"]=folder_path.split("\\")[-1]
     
-    # z coverage
-    series_z_coverage,image_z_coverage=seriesZCoverage(i0,i3)
-    meta_sum["SeriesZCoverage"]=series_z_coverage
-    meta_sum["ImageZCoverage"]=image_z_coverage
-    meta_sum["FirstSlice"]=i0[0x0020,0x0032].value[2] if (0x0020,0x0032) in i0 else constants.INT_ERROR
-    meta_sum["LastSlice"]=i3[0x0020,0x0032].value[2] if (0x0020,0x0032) in i3 else constants.INT_ERROR 
+    # get slice thickness
+    st_series,st_im_first,st_im_last,non_sorted_slice_warning,last_slice_pos,first_slice_pos=getSliceThickness(i0,i1,i2,i3,num_dcm_files)
+    meta_sum["SliceThicknessSeries"]=st_series
+    meta_sum["SliceThicknessImageFirst"]=st_im_first
+    meta_sum["SliceThicknessImageLast"]=st_im_last
+    meta_sum["SliceThickness_NotSortedWarning"]=non_sorted_slice_warning
+    meta_sum["FirstSlice"]=first_slice_pos
+    meta_sum["LastSlice"]=last_slice_pos
     
+    # z coverage
+    meta_sum["SeriesZCoverageImg"]=seriesZCoverage2((st_im_last+st_im_last)/2,num_dcm_files)
+    cov1=abs(meta_sum["LastSlice"]-meta_sum["FirstSlice"])
+    cov2=abs(meta_sum["SeriesZCoverageImg"])
+#     print("%s,%s"%(str(cov1),str(cov2)))
+    
+    # cov1*0.95 < cov2 < cov1*1.05:
+    if ((cov1*constants.Z_COVERAGE_TOL) <= cov2) and (cov2 <= cov1*(2-constants.Z_COVERAGE_TOL)):
+        meta_sum["SeriesCoverageErrorFlag"] = False
+    else:
+        meta_sum["SeriesCoverageErrorFlag"] = True
+
     # patient/date info
     meta_sum["PatientCode"]=i0[0x0010,0x0010].value if (0x0010,0x0010) in i0 else constants.EMPTY 
     meta_sum["StudyDate"]=i0[0x0008,0x0020].value if (0x0008,0x0020) in i0 else constants.EMPTY
@@ -142,13 +175,6 @@ def readMetadata(i0,i1,i2,i3,folder_path):
     meta_sum["ContrastBolusStartTime"]=cbst
     meta_sum["SeriesNameWithContrast"]=series_name_contrast
     
-    # get slice thickness
-    st_series,st_im_first,st_im_last,non_sorted_slice_warning=getSliceThickness(i0,i1,i2,i3)
-    meta_sum["SliceThicknessSeries"]=st_series
-    meta_sum["SliceThicknessImageFirst"]=st_im_first
-    meta_sum["SliceThicknessImageLast"]=st_im_last
-    meta_sum["SliceThickness_NotSortedWarning"]=non_sorted_slice_warning
-
     return meta_sum
 
 def populateMetadataDatabase(root_dir):
@@ -175,7 +201,7 @@ def populateMetadataDatabase(root_dir):
     for ii in range(int(ii_start),len(folder_df)+1):
         folder_path=os.path.join(root_dir,folder_df[folder_df.index==ii]["DicomDir"].iloc[0])
         if "_CT\\" in folder_path:
-            i0,i1,i2,i3,read_error=readDicoms(folder_path)
+            i0,i1,i2,i3,read_error,num_dcm_files=readDicoms(folder_path)
             
             # make sure we're actually dealing with a CT
             if not read_error:
@@ -186,9 +212,9 @@ def populateMetadataDatabase(root_dir):
             # now go through and find the metadata
             if (not read_error) and (is_ct):
                 try:
-                    meta_sum=readMetadata(i0, i1, i2, i3, folder_path)
+                    meta_sum=readMetadata(i0, i1, i2, i3, folder_path,num_dcm_files)
                     meta_sum["FolderIndex"]=folder_df.index[ii]
-                    
+                    meta_sum["NumFiles"]=num_dcm_files
                 except:
                     e = sys.exc_info()[0]
                     print( "Error: %s" % e )
@@ -219,7 +245,7 @@ def populateMetadataDatabase(root_dir):
                     writer.writerow(folder_path)
                     
 def loadMetadata(file_location=constants.METADATA_DATABASE_LOC):
-    dtype={"ContrastBolusStartTime":str,"ConvKernel":str,"FolderIndex":int,"ImageZCoverage":float,"IsAxial":bool,"Manufacturer":str,"ManufacturerModelName":str,"PatientName":str,"SeriesName":str,"SeriesNameWithContrast":bool,"SeriesZCoverage":float,"SliceThicknessImageFirst":float,"SliceThicknessImageLast":float,"SliceThicknessSeries":float,"StudyDate":str,"FirstSlice":float,"LastSlice":float}
+    dtype={"ContrastBolusStartTime":str,"ConvKernel":str,"FolderIndex":int,"ImageZCoverage":float,"IsAxial":bool,"Manufacturer":str,"ManufacturerModelName":str,"PatientCode":str,"SeriesName":str,"SeriesNameWithContrast":bool,"SeriesZCoverage":float,"SliceThicknessImageFirst":float,"SliceThicknessImageLast":float,"SliceThicknessSeries":float,"StudyDate":str,"FirstSlice":float,"LastSlice":float}
     md_df=pd.read_csv(file_location, encoding = "ISO-8859-1",dtype=dtype)
     
     dt_df=md_df.apply(lambda row:pd.to_datetime(row["StudyDate"],format='%Y%m%d',errors="coerce"),axis=1)
@@ -232,6 +258,7 @@ if __name__ == "__main__":
     
 #     indexFolders(constants.INDEX_ROOT_DIR)
     populateMetadataDatabase(constants.INDEX_ROOT_DIR)
-#     folder_path="Z:\\data\\trials\\GO29436_IMpower150\\Images\\280255-10262\\41993\\20150826_CT\\20150826_1736_602_Sagittal\\"
-#     i0,i1,i2,i3,error=readDicoms(folder_path)
-#     meta_sum=readMetadata(i0, i1, i2, i3, folder_path)
+#     folder_path="Z://data//trials//GO29436_IMpower150//Images//279836-11994//11573//20160916_CT//20160916_1459_3_w^IV contrast//"
+#     i0,i1,i2,i3,error,num_files=readDicoms(folder_path)
+#     meta_sum=readMetadata(i0, i1, i2, i3, folder_path,num_files)
+    print("Done")

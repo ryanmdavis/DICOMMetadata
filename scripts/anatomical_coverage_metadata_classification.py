@@ -38,7 +38,6 @@ for (subject_label,study_date) in pt_df.itertuples(index=False):
 coverage_df.to_csv(constants.TEMP1_CSV)
 print("t")
 
-
 # find percent with abdomen
 class_df=pd.read_csv("G:\\Shared drives\\PHC DS Imaging\\Projects\\DICOM Metadata Characterization\\IMpower150_complete_report.csv")
 
