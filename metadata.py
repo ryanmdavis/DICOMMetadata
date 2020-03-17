@@ -130,6 +130,11 @@ def seriesZCoverage2(st_im_last,num_dcm_files):
 def isModalityCT(i0):
     return True if (((0x0008,0x0060) in i0) and (i0[0x0008,0x0060].value == "CT")) else False
 
+def readMetadataFolder(folder):
+    i0,i1,i2,i3,read_error,num_dcm_files = readDicoms(folder)
+    meta_sum = readMetadata(i0,i1,i2,i3,folder,num_dcm_files)
+    return meta_sum
+
 def readMetadata(i0,i1,i2,i3,folder_path,num_dcm_files):
     meta_sum={}
     

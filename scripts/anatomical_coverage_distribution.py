@@ -70,7 +70,6 @@ plt.plot(bin_centers,ap_hist[0],label="Abdomen/Pelvis")
 plt.plot(bin_centers,brain_hist[0],label="Brain")
 plt.plot(bin_centers,c_hist[0],label="Chest")
 
-
 plt.legend(loc="upper right")
 plt.xlabel("series z coverage (mm)")
 plt.ylabel("number of series")
