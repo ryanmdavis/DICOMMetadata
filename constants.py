@@ -7,9 +7,12 @@ Created on Jan 27, 2020
 
 # Folder Locations
 
-FOLDER_SAVE_DIR                 = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\indexed_folders.csv"
-METADATA_DATABASE_LOC           = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\metadata_database.csv"
-INDEX_ROOT_DIR                  = "Z:\\data\\trials\\GO29436_IMpower150\\Images\\"
+FOLDER_INDEX_150_SAVE_LOC       = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\indexed_folders_IMP150.csv"
+FOLDER_INDEX_131_SAVE_LOC       = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\indexed_folders_IMP131.csv"
+IMP150_METADATA_DATABASE_LOC    = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\metadata_database_IMP150.csv"
+IMP131_METADATA_DATABASE_LOC    = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\metadata_database_IMP131.csv"
+INDEX_IMP150_DIR                = "Z:\\data\\trials\\GO29436_IMpower150\\Images\\"
+INDEX_IMP131_DIR                = "Z:\\data\\trials\\GO29437_IMpower131\\Images\\"
 ERROR_TRACKER_LOC               = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\error_database.csv"
 TEMP1_CSV                       = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\temp1_metadata.csv"
 TEMP_CONTRAST1_CSV              = "C:\\Users\\davisr28\\Documents\\Python\\DICOMMetadata\\data\\temp_contrast1_metadata.csv"

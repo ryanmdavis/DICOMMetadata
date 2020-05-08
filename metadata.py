@@ -19,7 +19,7 @@ import sys
 # recon kernal
 # slice thickness
 
-def indexFolders(d_start):
+def indexFolders(d_start,save_loc):
     folder_df=pd.DataFrame([])
     patient_num=0
     
@@ -33,7 +33,7 @@ def indexFolders(d_start):
         if (len(files) > 1) and ((".dcm" in files[0]) or (".dcm" in files[1])):
             folder_df=folder_df.append(pd.DataFrame([root[len(d_start):]],columns=["DicomDir"]),ignore_index=True)
 
-    folder_df.to_csv(constants.FOLDER_SAVE_DIR)
+    folder_df.to_csv(constants.FOLDER_INDEX_131_SAVE_LOC)
 
 def readDicoms(folder):
     # note that for this function, I'm reading the 2nd, 3rd, 2nd to last, 3rd to last scans because the first (and maybe last) 
@@ -182,18 +182,18 @@ def readMetadata(i0,i1,i2,i3,folder_path,num_dcm_files):
     
     return meta_sum
 
-def populateMetadataDatabase(root_dir):
+def populateMetadataDatabase(root_dir,folder_index_loc,metadata_database_loc):
     
 #     raise UserWarning("See comments below this line!")
     # The following are interfering with reading the dataframe in pandas
     # A few of the SliceThicknessSeries rows are empty, when they should be -999
     
     
-    folder_df=pd.read_csv(constants.FOLDER_SAVE_DIR,index_col=0)
+    folder_df=pd.read_csv(folder_index_loc,index_col=0)
     
     # find the start index
     try:
-        metadata_df=pd.read_csv(constants.METADATA_DATABASE_LOC)
+        metadata_df=pd.read_csv(metadata_database_loc)
         if len(metadata_df)==0:
             ii_start=0
         else:
@@ -231,11 +231,11 @@ def populateMetadataDatabase(root_dir):
                     keys.sort()
                 
                 if ii == 0:
-                    with open(constants.METADATA_DATABASE_LOC,"w",newline="") as file:
+                    with open(metadata_database_loc,"w",newline="") as file:
                         writer = csv.writer(file)
                         writer.writerow(keys)
                 
-                with open(constants.METADATA_DATABASE_LOC,"a",newline="") as file:
+                with open(metadata_database_loc,"a",newline="") as file:
                     writer = csv.writer(file)
                     writer.writerow([meta_sum[key] for key in keys])
             
@@ -249,7 +249,7 @@ def populateMetadataDatabase(root_dir):
                     writer = csv.writer(file)
                     writer.writerow(folder_path)
                     
-def loadMetadata(file_location=constants.METADATA_DATABASE_LOC):
+def loadMetadata(file_location):
     dtype={"ContrastBolusStartTime":str,"ConvKernel":str,"FolderIndex":int,"ImageZCoverage":float,"IsAxial":bool,"Manufacturer":str,"ManufacturerModelName":str,"PatientCode":str,"SeriesName":str,"SeriesNameWithContrast":bool,"SeriesZCoverage":float,"SliceThicknessImageFirst":float,"SliceThicknessImageLast":float,"SliceThicknessSeries":float,"StudyDate":str,"FirstSlice":float,"LastSlice":float}
     md_df=pd.read_csv(file_location, encoding = "ISO-8859-1",dtype=dtype)
     
@@ -261,8 +261,8 @@ def loadMetadata(file_location=constants.METADATA_DATABASE_LOC):
 
 if __name__ == "__main__":
     
-#     indexFolders(constants.INDEX_ROOT_DIR)
-    populateMetadataDatabase(constants.INDEX_ROOT_DIR)
+    indexFolders(constants.INDEX_IMP131_DIR,constants.FOLDER_INDEX_131_SAVE_LOC)
+    populateMetadataDatabase(constants.INDEX_IMP131_DIR,constants.FOLDER_INDEX_131_SAVE_LOC,constants.IMP131_METADATA_DATABASE_LOC)
 #     folder_path="Z://data//trials//GO29436_IMpower150//Images//279836-11994//11573//20160916_CT//20160916_1459_3_w^IV contrast//"
 #     i0,i1,i2,i3,error,num_files=readDicoms(folder_path)
 #     meta_sum=readMetadata(i0, i1, i2, i3, folder_path,num_files)
