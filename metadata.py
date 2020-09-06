@@ -130,6 +130,9 @@ def seriesZCoverage2(st_im_last,num_dcm_files):
 def isModalityCT(i0):
     return True if (((0x0008,0x0060) in i0) and (i0[0x0008,0x0060].value == "CT")) else False
 
+def isModalityPT(i0):
+    return True if (((0x0008,0x0060) in i0) and (i0[0x0008,0x0060].value == "PT")) else False
+
 def readMetadataFolder(folder):
     i0,i1,i2,i3,read_error,num_dcm_files = readDicoms(folder)
     meta_sum = readMetadata(i0,i1,i2,i3,folder,num_dcm_files)
@@ -182,7 +185,7 @@ def readMetadata(i0,i1,i2,i3,folder_path,num_dcm_files):
     
     return meta_sum
 
-def populateMetadataDatabase(root_dir,folder_index_loc,metadata_database_loc):
+def populateMetadataDatabase(root_dir,folder_index_loc,metadata_database_loc,modality):
     
 #     raise UserWarning("See comments below this line!")
     # The following are interfering with reading the dataframe in pandas
@@ -200,22 +203,28 @@ def populateMetadataDatabase(root_dir,folder_index_loc,metadata_database_loc):
             ii_start=metadata_df["FolderIndex"].max()+1
     except:
         ii_start=0
+        first_row = True
     
-    keys=[]
+    keys = []
     
     for ii in range(int(ii_start),len(folder_df)+1):
         folder_path=os.path.join(root_dir,folder_df[folder_df.index==ii]["DicomDir"].iloc[0])
-        if "_CT\\" in folder_path:
-            i0,i1,i2,i3,read_error,num_dcm_files=readDicoms(folder_path)
+        if "_"+modality+"\\" in folder_path:
+            i0, i1, i2, i3, read_error, num_dcm_files=readDicoms(folder_path)
             
             # make sure we're actually dealing with a CT
             if not read_error:
-                is_ct=isModalityCT(i0)
+                if modality == "CT":
+                    is_modality_correct = isModalityCT(i0)
+                elif modality == "PT":
+                    is_modality_correct = isModalityPT(i0)
+                else:
+                    raise RuntimeError("can't handle modality %s" % modality)
             else:
-                is_ct=False    
+                is_modality_correct=False
             
             # now go through and find the metadata
-            if (not read_error) and (is_ct):
+            if (not read_error) and (is_modality_correct):
                 try:
                     meta_sum=readMetadata(i0, i1, i2, i3, folder_path,num_dcm_files)
                     meta_sum["FolderIndex"]=folder_df.index[ii]
@@ -230,10 +239,12 @@ def populateMetadataDatabase(root_dir,folder_index_loc,metadata_database_loc):
                     keys=list(meta_sum.keys())
                     keys.sort()
                 
-                if ii == 0:
+                if first_row:
+                    print("Wrote column names")
                     with open(metadata_database_loc,"w",newline="") as file:
                         writer = csv.writer(file)
                         writer.writerow(keys)
+                    first_row = False
                 
                 with open(metadata_database_loc,"a",newline="") as file:
                     writer = csv.writer(file)
@@ -241,8 +252,8 @@ def populateMetadataDatabase(root_dir,folder_index_loc,metadata_database_loc):
             
         #     series_st,first_st,last_st=
                 print("{:2.3%} complete".format(ii/len(folder_df)))
-            elif not is_ct:
-                print("Skipping non-CT volume: " + folder_path)
+            elif not is_modality_correct:
+                print("Skipping non-%s volume: "%modality + folder_path)
             else:
                 print("error on folder: " + folder_path)
                 with open(constants.ERROR_TRACKER_LOC,"a",newline="") as file:
@@ -260,9 +271,9 @@ def loadMetadata(file_location):
     return md_df
 
 if __name__ == "__main__":
-    
-    indexFolders(constants.INDEX_IMP131_DIR,constants.FOLDER_INDEX_131_SAVE_LOC)
-    populateMetadataDatabase(constants.INDEX_IMP131_DIR,constants.FOLDER_INDEX_131_SAVE_LOC,constants.IMP131_METADATA_DATABASE_LOC)
+
+    # indexFolders(constants.INDEX_IMP131_DIR,constants.FOLDER_INDEX_131_SAVE_LOC)
+    populateMetadataDatabase(constants.INDEX_IMP131_DIR,constants.FOLDER_INDEX_131_SAVE_LOC,constants.IMP131_METADATA_DATABASE_LOC,"PT")
 #     folder_path="Z://data//trials//GO29436_IMpower150//Images//279836-11994//11573//20160916_CT//20160916_1459_3_w^IV contrast//"
 #     i0,i1,i2,i3,error,num_files=readDicoms(folder_path)
 #     meta_sum=readMetadata(i0, i1, i2, i3, folder_path,num_files)
