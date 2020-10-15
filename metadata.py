@@ -13,6 +13,16 @@ import pydicom
 import csv
 import sys
 
+# Thresholds
+AXIAL_SCAN_THRESHOLD            = 0.95
+MM_RANGE                        = 0.05
+Z_COVERAGE_TOL                  = 0.98
+
+# strings
+EMPTY                           = "empty"
+INT_ERROR                       = -999
+W_IV_CONTRAST                   = "w^IV contrast"
+
 # scan frequency: average time between scans, average time between first and last scan
 # z coverage of series
 # contrast use = 
@@ -59,15 +69,15 @@ def readDicoms(folder):
     return i0,i1,i2,i3,error,len(dcm_files)
 
 def isContrastEnhanced(i0,series_dir):
-    cbst = constants.EMPTY if (0x0018,0x1042) not in i0 else i0[0x0018,0x1042].value # contrast bolus start time
-    series_name_contrast = constants.W_IV_CONTRAST in series_dir
+    cbst = EMPTY if (0x0018,0x1042) not in i0 else i0[0x0018,0x1042].value # contrast bolus start time
+    series_name_contrast = W_IV_CONTRAST in series_dir
     
     return cbst,series_name_contrast
 
 def isSeriesAxial(i0,folder_path):
 
     folder_name_non_axial=any([non_ax_str in folder_path for non_ax_str in ["Sagittal","Coronal","sagittal","coronal"]])
-    image_orientation_non_axial=((float(i0[0x0020,0x0037].value[0]) < constants.AXIAL_SCAN_THRESHOLD) or (float(i0[0x0020,0x0037].value[4]) < constants.AXIAL_SCAN_THRESHOLD)) if (0x0020,0x0037) in i0 else False
+    image_orientation_non_axial=((float(i0[0x0020,0x0037].value[0]) < AXIAL_SCAN_THRESHOLD) or (float(i0[0x0020,0x0037].value[4]) < AXIAL_SCAN_THRESHOLD)) if (0x0020,0x0037) in i0 else False
 
     return not (folder_name_non_axial or image_orientation_non_axial)
 
@@ -139,6 +149,9 @@ def readMetadataFolder(folder):
     return meta_sum
 
 def readMetadata(i0,i1,i2,i3,folder_path,num_dcm_files):
+    Z_COVERAGE_TOL = 0.98
+    EMPTY = "empty"
+
     meta_sum={}
     
     # folder path
@@ -160,20 +173,20 @@ def readMetadata(i0,i1,i2,i3,folder_path,num_dcm_files):
 #     print("%s,%s"%(str(cov1),str(cov2)))
     
     # cov1*0.95 < cov2 < cov1*1.05:
-    if ((cov1*constants.Z_COVERAGE_TOL) <= cov2) and (cov2 <= cov1*(2-constants.Z_COVERAGE_TOL)):
+    if ((cov1*Z_COVERAGE_TOL) <= cov2) and (cov2 <= cov1*(2-Z_COVERAGE_TOL)):
         meta_sum["SeriesCoverageErrorFlag"] = False
     else:
         meta_sum["SeriesCoverageErrorFlag"] = True
 
     # patient/date info
-    meta_sum["PatientCode"]=i0[0x0010,0x0010].value if (0x0010,0x0010) in i0 else constants.EMPTY 
-    meta_sum["StudyDate"]=i0[0x0008,0x0020].value if (0x0008,0x0020) in i0 else constants.EMPTY
+    meta_sum["PatientCode"]=i0[0x0010,0x0010].value if (0x0010,0x0010) in i0 else EMPTY
+    meta_sum["StudyDate"]=i0[0x0008,0x0020].value if (0x0008,0x0020) in i0 else EMPTY
     meta_sum["SitePatient"]=folder_path.split("\\")[5]
     
     # software
-    meta_sum["ConvKernel"]=i0[0x0018,0x1210].value if (0x0018,0x1210) in i0 else constants.EMPTY
-    meta_sum["Manufacturer"]=i0[0x0008,0x0070].value if (0x0008,0x0070) in i0 else constants.EMPTY 
-    meta_sum["ManufacturerModelName"]=i0[0x0008,0x1090].value if (0x0008,0x1090) in i0 else constants.EMPTY
+    meta_sum["ConvKernel"]=i0[0x0018,0x1210].value if (0x0018,0x1210) in i0 else EMPTY
+    meta_sum["Manufacturer"]=i0[0x0008,0x0070].value if (0x0008,0x0070) in i0 else EMPTY
+    meta_sum["ManufacturerModelName"]=i0[0x0008,0x1090].value if (0x0008,0x1090) in i0 else EMPTY
     
     # check if axial
     meta_sum["IsAxial"] = isSeriesAxial(i0,folder_path)
